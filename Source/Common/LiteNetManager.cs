@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -47,7 +47,8 @@ namespace Multiplayer.Common
                 return new NetManager(new MpServerNetListener(server, false))
                 {
                     EnableStatistics = true,
-                    IPv6Enabled = ipv6
+                    IPv6Enabled = ipv6,
+                    DisconnectTimeout = MpNetworkTimeouts.DisconnectTimeoutMs
                 };
             }
         }
@@ -86,7 +87,7 @@ namespace Multiplayer.Common
 
         public static LiteNetArbiterManager? Create(MultiplayerServer server)
         {
-            var arbiter = new NetManager(new MpServerNetListener(server, true)) { IPv6Enabled = false };
+            var arbiter = new NetManager(new MpServerNetListener(server, true)) { IPv6Enabled = false, DisconnectTimeout = MpNetworkTimeouts.DisconnectTimeoutMs };
             if (!arbiter.Start(IPAddress.Loopback, IPAddress.IPv6Any, 0)) return null;
             return new LiteNetArbiterManager(arbiter);
         }
@@ -115,6 +116,7 @@ namespace Multiplayer.Common
         {
             var lanManager = new NetManager(new MpServerNetListener(server, false))
             {
+                DisconnectTimeout = MpNetworkTimeouts.DisconnectTimeoutMs,
                 EnableStatistics = true,
                 IPv6Enabled = false
             };

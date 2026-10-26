@@ -32,7 +32,10 @@ namespace Multiplayer.Client.Networking
                 EnableStatistics = true,
                 IPv6Enabled = MpUtil.SupportsIPv6(),
                 ReconnectDelay = 300,
-                MaxConnectAttempts = 8
+                MaxConnectAttempts = 8,
+                // Big mod lists stall the main thread for long stretches while loading/joining;
+                // LiteNet's 5 s default then drops healthy connections (Waylith build).
+                DisconnectTimeout = MpNetworkTimeouts.DisconnectTimeoutMs
             };
             netClient.Start();
             var peer = netClient.Connect(address, port, "");
