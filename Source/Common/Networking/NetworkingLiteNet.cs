@@ -11,7 +11,7 @@ namespace Multiplayer.Common
         {
             if (server.playerManager.OnPreConnect(req.RemoteEndPoint.Address) is { } disconnectReason)
             {
-                req.Reject(new ServerDisconnectPacket { reason = disconnectReason }.Serialize().data);
+                req.Reject(new ServerDisconnectPacket { reason = disconnectReason, data = [] }.Serialize().data);
                 return;
             }
 
