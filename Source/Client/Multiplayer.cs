@@ -130,6 +130,10 @@ namespace Multiplayer.Client
                 arbiterInstance = true;
             }
 
+            // Before anything changes them: MultiplayerGame resets these statics for every session.
+            StaticDefaults.Capture(typeof(DebugSettings));
+            StaticDefaults.Capture(typeof(RimWorld.BaseGen.SymbolResolver_SingleThing));
+
             ScribeLike.provider = new ScribeProvider();
             settings = MultiplayerLoader.Multiplayer.instance!.GetSettings<MpSettings>();
 

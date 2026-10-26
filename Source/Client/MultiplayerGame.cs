@@ -7,6 +7,7 @@ using Multiplayer.Client.AsyncTime;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Desyncs;
 using Multiplayer.Client.Factions;
+using Multiplayer.Client.Util;
 using RimWorld;
 using RimWorld.BaseGen;
 using UnityEngine;
@@ -64,17 +65,13 @@ namespace Multiplayer.Client
 
             SetThingMakerSeed(1);
 
-            foreach (var field in typeof(DebugSettings).GetFields(BindingFlags.Public | BindingFlags.Static))
-                if (!field.IsLiteral && field.FieldType == typeof(bool))
-                    field.SetValue(null, default(bool));
-
-            typeof(DebugSettings).TypeInitializer.Invoke(null, null);
+            StaticDefaults.Restore(typeof(DebugSettings));
 
             foreach (var resolver in DefDatabase<RuleDef>.AllDefs.SelectMany(r => r.resolvers))
                 if (resolver is SymbolResolver_EdgeThing edgeThing)
                     edgeThing.randomRotations = new List<int>() { 0, 1, 2, 3 };
 
-            typeof(SymbolResolver_SingleThing).TypeInitializer.Invoke(null, null);
+            StaticDefaults.Restore(typeof(SymbolResolver_SingleThing));
 
             FactionCreator.ClearData();
         }
