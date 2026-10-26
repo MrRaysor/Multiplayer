@@ -751,4 +751,45 @@ namespace Multiplayer.Client.Patches
     }
 
 
+
+    // A PawnFlyer only moves itself on the thing grid in RecomputePosition, which the game calls from DrawPos and
+    // while drawing: each player moved a flying pawn (jump packs, Melee Animation grapples) between cells when
+    // they happened to draw it. In Multiplayer drawing only computes the visual position and the grid position
+    // follows the flight in the flyer's tick.
+    [HarmonyPatch(typeof(PawnFlyer), nameof(PawnFlyer.RecomputePosition))]
+    static class PawnFlyerGridPositionNotFromDrawing
+    {
+        static readonly MethodInfo PositionSetter = AccessTools.PropertySetter(typeof(Thing), nameof(Thing.Position));
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        {
+            foreach (var inst in insts)
+            {
+                if (inst.Calls(PositionSetter))
+                    inst.operand = AccessTools.Method(typeof(PawnFlyerGridPositionNotFromDrawing), nameof(SetPosition));
+                yield return inst;
+            }
+        }
+
+        static void SetPosition(Thing flyer, IntVec3 cell)
+        {
+            if (Multiplayer.Client == null)
+                flyer.Position = cell;
+        }
+    }
+
+    [HarmonyPatch(typeof(PawnFlyer), nameof(PawnFlyer.TickInterval))]
+    static class PawnFlyerGridPositionInTick
+    {
+        static void Postfix(PawnFlyer __instance)
+        {
+            if (Multiplayer.Client == null || !__instance.Spawned || __instance.ticksFlightTime <= 0)
+                return;
+
+            var progress = __instance.def.pawnFlyer.Worker.AdjustedProgress((float)__instance.ticksFlying / __instance.ticksFlightTime);
+            var cell = Vector3.Lerp(__instance.startVec, __instance.DestinationPos, progress).ToIntVec3();
+            if (cell != __instance.Position && cell.InBounds(__instance.Map))
+                __instance.Position = cell;
+        }
+    }
 }
