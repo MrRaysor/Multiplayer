@@ -56,6 +56,26 @@ namespace Multiplayer.Client.Patches
         }
     }
 
+#if RIMWORLD_1_7
+    // Waylith -Headless (used for the arbiter) never runs OnGUI, so a synchronous long event with a
+    // loading text would wait forever for its first repaint (ShouldWaitUntilDisplayed). The hosting
+    // save ("MpSaving") and the join flow are such events.
+    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.LongEventsUpdate))]
+    static class HeadlessLongEventDisplayed
+    {
+        static readonly bool Headless = Environment.GetCommandLineArgs()
+            .Any(a => a.Trim('-', '+').Equals("Headless", StringComparison.OrdinalIgnoreCase));
+
+        static bool Prepare() => Headless;
+
+        static void Prefix()
+        {
+            var ev = LongEventHandler.currentEvent;
+            if (ev != null) ev.alreadyDisplayed = true;
+        }
+    }
+#endif
+
     [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.ExecuteToExecuteWhenFinished))]
     static class LongEventEnd
     {

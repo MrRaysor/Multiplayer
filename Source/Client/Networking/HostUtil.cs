@@ -220,7 +220,13 @@ namespace Multiplayer.Client
             if (arbiterNet == null) throw new Exception("Failed to setup Arbiter network.");
             Multiplayer.LocalServer.netManagers.Add(arbiterNet);
 
+#if RIMWORLD_1_7
+            // Waylith has no Unity batch mode: -Headless runs without a window or renderer, and
+            // -NoFileLog keeps the arbiter from rotating the host's own Logs/Player.log.
+            string args = $"-Headless -NoFileLog -arbiter -connect=127.0.0.1:{arbiterNet.Port}";
+#else
             string args = $"-batchmode -nographics -arbiter -logfile arbiter_log.txt -connect=127.0.0.1:{arbiterNet.Port}";
+#endif
 
             if (GenCommandLine.TryGetCommandLineArg("savedatafolder", out string saveDataFolder))
                 args += $" \"-savedatafolder={saveDataFolder}\"";
