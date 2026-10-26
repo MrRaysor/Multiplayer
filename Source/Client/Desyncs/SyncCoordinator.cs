@@ -26,6 +26,8 @@ namespace Multiplayer.Client
 
         private ClientSyncOpinion currentOpinion;
 
+        public int TracesInBuilding => currentOpinion?.desyncStackTraces.Count ?? 0;
+
         public int lastValidTick = -1;
         public bool arbiterWasPlayingOnLastValidTick;
 

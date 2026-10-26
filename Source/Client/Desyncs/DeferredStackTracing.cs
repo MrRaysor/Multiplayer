@@ -28,6 +28,8 @@ namespace Multiplayer.Client.Desyncs
 
         public static int acc;
 
+        private const int ManagedTraceCap = 4000;
+
         private static bool SupportsDeferredStackTracing =>
             RuntimeInformation.ProcessArchitecture is Architecture.X64 or Architecture.X86;
 
@@ -39,6 +41,17 @@ namespace Multiplayer.Client.Desyncs
             var logItem = StackTraceLogItemRaw.GetFromPool();
             if (!Native.IsMonoRuntime)
             {
+                // The managed fallback walks the stack and builds its text for every traced call, kept until the
+                // opinion is compared. A map generation or a raid makes millions of calls in one opinion, which
+                // took gigabytes and stalled the game, so only the first calls of each opinion get a stack. The
+                // trace hash outside Mono covers the RNG state alone, so every call still locates a divergence.
+                if (Multiplayer.game.sync.TracesInBuilding >= ManagedTraceCap)
+                {
+                    Multiplayer.game.sync.TryAddStackTraceForDesyncLogRaw(logItem, 0, 0, "(stack not captured)");
+                    acc++;
+                    return;
+                }
+
                 // Managed fallback: never interpret CoreCLR addresses as Mono frames.
                 var frames = new StackTrace(1, false).GetFrames();
                 var text = new StringBuilder();
