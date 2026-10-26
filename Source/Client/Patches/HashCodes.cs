@@ -133,6 +133,61 @@ namespace Multiplayer.Client.Patches
         }
     }
 
+    // Without the detours (.NET, RimWorld 1.7) System.HashCode is seeded randomly per process, so game code
+    // that turns HashCode.Combine into a random seed gets a different one on every client: settlement and
+    // structure generation (BaseGen and LayoutWorker seed each step from Map.NextGenSeed), raiders deciding
+    // whether they know of a trap, gravship incident seeds. Those callers are rewritten instead: Assembly-CSharp
+    // is never inlined, so their transpiled body is what always runs. Other HashCode.Combine callers only
+    // build dictionary keys, which a process just needs to hash consistently.
+    [HarmonyPatch]
+    static class DeterministicHashCodeSeeds
+    {
+        static bool Prepare() => !HashCodeDetours.Supported;
+
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.PropertyGetter(typeof(Map), nameof(Map.NextGenSeed));
+            yield return AccessTools.Method(typeof(LayoutWorker), "FillAllRooms");
+            yield return AccessTools.Method(typeof(Building_Trap), nameof(Building_Trap.KnowsOfTrap));
+            yield return AccessTools.PropertyGetter(typeof(Gravship), nameof(Gravship.ConstantRandSeed));
+        }
+
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts, MethodBase original)
+        {
+            var replaced = 0;
+            foreach (var inst in insts)
+            {
+                if (inst.operand is MethodInfo { Name: "Combine" } m && m.DeclaringType?.FullName == "System.HashCode"
+                    && m.GetParameters().All(p => p.ParameterType == typeof(int)))
+                {
+                    var count = m.GetParameters().Length;
+                    var replacement = count switch
+                    {
+                        2 => nameof(Combine2),
+                        3 => nameof(Combine3),
+                        _ => null
+                    };
+                    if (replacement != null)
+                    {
+                        inst.operand = AccessTools.Method(typeof(DeterministicHashCodeSeeds), replacement);
+                        replaced++;
+                    }
+                }
+
+                yield return inst;
+            }
+
+            if (replaced == 0)
+                Log.Warning($"MP: no HashCode.Combine seed found in {original.DeclaringType?.Name}.{original.Name}");
+        }
+
+        static int Combine2(int value1, int value2) =>
+            Multiplayer.Client == null ? HashCode.Combine(value1, value2) : Gen.HashCombineInt(value1, value2);
+
+        static int Combine3(int value1, int value2, int value3) =>
+            Multiplayer.Client == null ? HashCode.Combine(value1, value2, value3) : DeterministicHash.HashCombineInt(value1, value2, value3);
+    }
+
     //  ─── PATCH 2 ints ─────────────────────────────────────────
     [HarmonyPatch]
     static class Combine2Patch
