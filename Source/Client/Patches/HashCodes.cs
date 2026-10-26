@@ -105,6 +105,14 @@ namespace Multiplayer.Client.Patches
     {
         private static readonly Type HashCodeType = typeof(string).Assembly.GetType("System.HashCode");
 
+        // On Mono (RimWorld up to 1.6) a detoured method is never inlined. The .NET runtime of RimWorld 1.7
+        // only keeps Assembly-CSharp methods out of inlining (WaylithClr.JitPatchableAssemblies), so callers
+        // recompiled by the tiered JIT inline the original HashCode.Combine and bypass the detour while
+        // others still call it: one process then hashes the same value two ways. A Dictionary keyed by a
+        // ValueTuple (Scribe's cross-reference bank) stops finding its own keys, which corrupted every
+        // join point after the first one. Without the detour every caller agrees again.
+        internal static bool Supported => Type.GetType("Mono.Runtime") != null;
+
         internal static MethodBase GetCombineIntMethod(int numOfInts)
         {
             Type[] intTypes = Enumerable.Repeat(typeof(int), numOfInts).ToArray();
@@ -131,6 +139,8 @@ namespace Multiplayer.Client.Patches
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(2);
 
+        static bool Prepare() => HashCodeDetours.Supported;
+
         static bool Prefix(int value1, int value2, ref int __result)
         {
             if (Multiplayer.Client == null)
@@ -146,6 +156,8 @@ namespace Multiplayer.Client.Patches
     static class Combine3Patch
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(3);
+
+        static bool Prepare() => HashCodeDetours.Supported;
 
         static bool Prefix(int value1, int value2, int value3, ref int __result)
         {
@@ -163,6 +175,8 @@ namespace Multiplayer.Client.Patches
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(4);
 
+        static bool Prepare() => HashCodeDetours.Supported;
+
         static bool Prefix(int value1, int value2, int value3, int value4, ref int __result)
         {
             if (Multiplayer.Client == null)
@@ -179,6 +193,8 @@ namespace Multiplayer.Client.Patches
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(5);
 
+        static bool Prepare() => HashCodeDetours.Supported;
+
         static bool Prefix(int value1, int value2, int value3, int value4, int value5, ref int __result)
         {
             if (Multiplayer.Client == null)
@@ -194,6 +210,8 @@ namespace Multiplayer.Client.Patches
     static class Combine6Patch
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(6);
+
+        static bool Prepare() => HashCodeDetours.Supported;
 
         static bool Prefix(int value1, int value2, int value3, int value4, int value5, int value6, ref int __result)
         {
@@ -212,6 +230,8 @@ namespace Multiplayer.Client.Patches
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(7);
 
+        static bool Prepare() => HashCodeDetours.Supported;
+
         static bool Prefix(int value1, int value2, int value3, int value4, int value5, int value6, int value7, ref int __result)
         {
             if (Multiplayer.Client == null)
@@ -228,6 +248,8 @@ namespace Multiplayer.Client.Patches
     static class Combine8Patch
     {
         static MethodBase TargetMethod() => HashCodeDetours.GetCombineIntMethod(8);
+
+        static bool Prepare() => HashCodeDetours.Supported;
 
         static bool Prefix(int value1, int value2, int value3, int value4, int value5, int value6, int value7, int value8, ref int __result)
         {
