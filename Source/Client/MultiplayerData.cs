@@ -1,4 +1,4 @@
-using Multiplayer.Common;
+﻿using Multiplayer.Common;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -23,8 +23,17 @@ namespace Multiplayer.Client
         {
             foreach (var mod in ModLister.AllInstalledMods)
             {
-                IsXmlMod(mod);
-                IsTranslationMod(mod);
+                // A mod folder deleted while the game starts (a test runner deploying and removing itself)
+                // must not abort Multiplayer's static initialization.
+                try
+                {
+                    IsXmlMod(mod);
+                    IsTranslationMod(mod);
+                }
+                catch (IOException e)
+                {
+                    Log.Warning($"Multiplayer: skipping mod {mod.RootDir.FullName} while caching mod info: {e.Message}");
+                }
             }
         }
 
