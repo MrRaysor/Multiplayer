@@ -33,6 +33,11 @@ namespace Multiplayer.Client
 
         private const int MaxBacklog = 30;
 
+        // The opinion packet holds at most 1<<21 trace hashes; a bigger one fails to serialize and the
+        // host's opinion for that window is never sent (a settlement map generation makes millions of
+        // traced calls). Every client stops at the same count, so the prefix still locates a divergence.
+        private const int MaxTraceHashesPerOpinion = 2_000_000;
+
         public ClientSyncOpinion FinishLocalOpinion()
         {
             if (!ShouldCollect || currentOpinion == null) return null;
@@ -201,6 +206,7 @@ namespace Multiplayer.Client
             if (!ShouldCollect) return;
 
             OpinionInBuilding.TryMarkSimulating();
+            if (OpinionInBuilding.desyncStackTraceHashes.Count >= MaxTraceHashesPerOpinion) return;
 
             int hash = Gen.HashCombineInt(info1.GetHashCode(), info2.GetHashCode());
 
@@ -219,6 +225,7 @@ namespace Multiplayer.Client
             if (!ShouldCollect) return;
 
             OpinionInBuilding.TryMarkSimulating();
+            if (OpinionInBuilding.desyncStackTraceHashes.Count >= MaxTraceHashesPerOpinion) return;
 
             item.depth = depth;
             item.ticksGame = Find.TickManager.ticksGameInt;
