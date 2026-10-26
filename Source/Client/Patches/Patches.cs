@@ -252,9 +252,18 @@ namespace Multiplayer.Client
     {
         public static bool cancel;
 
-        static bool Prefix()
+        static bool Prefix(string textKey, ref bool doAsynchronously)
         {
             if (RootPlayStartMarker.starting && cancel) return false;
+
+            // A joining client loads the game from Root_Play.Start's asynchronous event, on a worker thread,
+            // while every other Multiplayer load (the host's join point reload, a rejoin) runs synchronously on
+            // the main thread. Mods that act differently off the main thread while loading then leave the
+            // joining client in a different state (RimWorld 1.7: Mechanoid Mechanitor's post-load restore
+            // desynced every first join). Multiplayer loads run on the main thread too.
+            if (RootPlayStartMarker.starting && LoadPatch.gameToLoad != null && textKey == "LoadingLongEvent")
+                doAsynchronously = false;
+
             return true;
         }
     }
