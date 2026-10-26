@@ -232,7 +232,11 @@ namespace Multiplayer.Client
                 item.thingId = thing.thingIDNumber;
             }
 
-            var hash = Gen.HashCombineInt(hashIn, depth, (int)(item.rngState >> 32), (int)item.rngState);
+            // Outside Mono the stack and its depth change with JIT inlining from one process to another, so
+            // only the RNG state is hashed there: the first differing hash is then the first divergent call.
+            var hash = Native.IsMonoRuntime
+                ? Gen.HashCombineInt(hashIn, depth, (int)(item.rngState >> 32), (int)item.rngState)
+                : Gen.HashCombineInt((int)(item.rngState >> 32), (int)item.rngState);
             item.hash = hash;
 
             OpinionInBuilding.desyncStackTraces.Add(item);
