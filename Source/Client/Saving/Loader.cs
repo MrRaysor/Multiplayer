@@ -63,9 +63,11 @@ public static class Loader
         // If the client gets disconnected during loading
         if (Multiplayer.Client == null) return;
 
+        var orderedCmds = Multiplayer.session.dataSnapshot.OrderedCmds;
         Multiplayer.session.dataSnapshot = Multiplayer.session.dataSnapshot with
         {
-            CachedAtTime = TickPatch.Timer
+            CachedAtTime = TickPatch.Timer,
+            OrderedCmds = null
         };
 
         Multiplayer.session.replayTimerStart = TickPatch.Timer;
@@ -75,9 +77,12 @@ public static class Loader
         );
         Multiplayer.game.myFactionLoading = null;
 
+        // In the server's order, every cmd runs from the world queue, as live cmds do with consistentCommandOrder: per map
+        // queues run a tick's world cmds before its map cmds, and the cmds sent while the timer waited for a joining
+        // player all share one tick (map queues stay empty then, see AsyncTimeComp.FinalizeInit)
         Multiplayer.AsyncWorldTime.cmds = new Queue<ScheduledCommand>(
-            Multiplayer.session.dataSnapshot.MapCmds.GetValueSafe(ScheduledCommand.Global) ?? []);
-        // Map cmds are added in MapAsyncTimeComp.FinalizeInit
+            orderedCmds ?? Multiplayer.session.dataSnapshot.MapCmds.GetValueSafe(ScheduledCommand.Global) ?? []);
+        // Otherwise map cmds are added in MapAsyncTimeComp.FinalizeInit
     }
 
     private static XmlDocument DataSnapshotToXml(GameDataSnapshot dataSnapshot, List<int> mapsToLoad)

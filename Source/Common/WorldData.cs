@@ -16,6 +16,10 @@ public class WorldData
 
     public Dictionary<int, List<byte[]>> mapCmds = new(); // Map id to serialized cmds list
     public Dictionary<int, List<byte[]>>? tmpMapCmds;
+    // Map id of every cmd in mapCmds, in the order they were sent: joining clients replay them in this one order
+    // (commands sent while the timer waits for a joining player share a tick, so per map lists lose their order)
+    public List<int> cmdOrder = new();
+    public List<int>? tmpCmdOrder;
     public int lastJoinPointAtTick = -1;
 
     public List<byte[]> syncInfos = new();
@@ -71,6 +75,7 @@ public class WorldData
         Server.commands.Send(CommandType.CreateJoinPoint, ScheduledCommand.NoFaction, ScheduledCommand.Global, Array.Empty<byte>(),
             sourcePlayer: Server.IsStandaloneServer ? issuingPlayer : null);
         tmpMapCmds = new Dictionary<int, List<byte[]>>();
+        tmpCmdOrder = new List<int>();
         dataSource = new TaskCompletionSource<WorldData>();
 
         return true;
@@ -82,6 +87,8 @@ public class WorldData
         ServerLog.Detail($"Join point completed at tick={currentTick}, standalone={Server.IsStandaloneServer}");
         mapCmds = tmpMapCmds!;
         tmpMapCmds = null;
+        cmdOrder = tmpCmdOrder!;
+        tmpCmdOrder = null;
         lastJoinPointAtTick = currentTick;
 
         if (Server.IsStandaloneServer && Server.persistence != null)
@@ -106,6 +113,7 @@ public class WorldData
             return;
 
         tmpMapCmds = null;
+        tmpCmdOrder = null;
         dataSource?.SetResult(this);
         dataSource = null;
     }

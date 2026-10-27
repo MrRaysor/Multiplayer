@@ -238,6 +238,7 @@ namespace Multiplayer.Common
                 return;
 
             Server.worldData.mapCmds.Clear();
+            Server.worldData.cmdOrder.Clear();
             Server.gameTimer = Server.startingTimer;
 
             Server.SendToPlaying(new ServerDebugPacket());

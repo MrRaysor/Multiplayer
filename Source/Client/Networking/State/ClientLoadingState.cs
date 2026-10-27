@@ -127,6 +127,21 @@ public class ClientLoadingState(ConnectionBase connection) : ClientBaseState(con
             ? $"Initial sync opinions: {initialOpinions.First().startTick}...{initialOpinions.Last().startTick}"
             : "No initial sync opinions");
 
+        // The map id of every cmd in the server's sending order (absent from older servers)
+        if (data.Left >= 4 && MultiplayerSession.consistentCommandOrder)
+        {
+            int orderCount = data.ReadInt32();
+            var order = new List<int>(orderCount);
+            for (int i = 0; i < orderCount; i++)
+                order.Add(data.ReadInt32());
+
+            var orderedCmds = CmdsInServerOrder(mapCmdsDict, order);
+            Log.Message(orderedCmds != null
+                ? $"Join cmds in server order: {orderedCmds.Count}"
+                : $"Join cmds order doesn't match the map cmds ({order.Count} entries), replaying per map");
+            Session.dataSnapshot = Session.dataSnapshot with { OrderedCmds = orderedCmds };
+        }
+
         TickPatch.SetSimulation(
             toTickUntil: true,
             onFinish: () => Multiplayer.Client.Send(Packets.Client_WorldReady),
@@ -145,5 +160,28 @@ public class ClientLoadingState(ConnectionBase connection) : ClientBaseState(con
         var loadingMs = watch.ElapsedMilliseconds;
         Log.Message($"Loaded game in {loadingMs}ms");
         connection.ChangeState(ConnectionStateEnum.ClientPlaying);
+    }
+
+    // The map cmds in the server's order, or null if the order doesn't account for exactly these cmds (e.g. a
+    // standalone server restored from disk)
+    private static List<ScheduledCommand>? CmdsInServerOrder(Dictionary<int, List<ScheduledCommand>> mapCmds, List<int> order)
+    {
+        var next = new Dictionary<int, int>();
+        var result = new List<ScheduledCommand>(order.Count);
+
+        foreach (var mapId in order)
+        {
+            if (!mapCmds.TryGetValue(mapId, out var cmds)) return null;
+            next.TryGetValue(mapId, out var index);
+            if (index >= cmds.Count) return null;
+            result.Add(cmds[index]);
+            next[mapId] = index + 1;
+        }
+
+        foreach (var kv in mapCmds)
+            if ((next.TryGetValue(kv.Key, out var used) ? used : 0) != kv.Value.Count)
+                return null;
+
+        return result;
     }
 }

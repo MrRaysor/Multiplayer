@@ -49,6 +49,8 @@ namespace Multiplayer.Common
             // todo cull target players if not global
             server.worldData.mapCmds.GetOrAddNew(mapId).Add(toSave);
             server.worldData.tmpMapCmds?.GetOrAddNew(mapId).Add(toSave);
+            server.worldData.cmdOrder.Add(mapId);
+            server.worldData.tmpCmdOrder?.Add(mapId);
 
             if (server.CanUseStandaloneMapStreaming(mapId))
             {

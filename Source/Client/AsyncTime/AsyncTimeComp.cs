@@ -220,9 +220,11 @@ namespace Multiplayer.Client
 
         public void FinalizeInit()
         {
-            cmds = new Queue<ScheduledCommand>(
-                Multiplayer.session.dataSnapshot?.MapCmds.GetValueSafe(map.uniqueID) ?? new List<ScheduledCommand>()
-            );
+            // Loading a snapshot with the server's command order: this map's cmds run from the world queue (Loader.PostLoad)
+            var snapshot = Multiplayer.session.dataSnapshot;
+            cmds = snapshot?.OrderedCmds != null
+                ? new Queue<ScheduledCommand>()
+                : new Queue<ScheduledCommand>(snapshot?.MapCmds.GetValueSafe(map.uniqueID) ?? new List<ScheduledCommand>());
 
             Log.Message($"Init map with cmds {cmds.Count}");
         }

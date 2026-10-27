@@ -136,6 +136,7 @@ namespace Multiplayer.Client
         {
             MpLog.Debug(cmd.ToString());
             dataSnapshot.MapCmds.GetOrAddNew(cmd.mapId).Add(cmd);
+            dataSnapshot.OrderedCmds?.Add(cmd);
 
             if (Current.ProgramState != ProgramState.Playing) return;
 

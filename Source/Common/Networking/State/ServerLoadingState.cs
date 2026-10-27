@@ -83,6 +83,11 @@ public class ServerLoadingState : AsyncConnectionState
         foreach (var syncInfo in Server.worldData.syncInfos)
             writer.WritePrefixedBytes(syncInfo);
 
+        // Last, so a client that doesn't read it still works: the map id of every cmd above, in sending order
+        writer.WriteInt32(Server.worldData.cmdOrder.Count);
+        foreach (var mapId in Server.worldData.cmdOrder)
+            writer.WriteInt32(mapId);
+
         byte[] packetData = writer.ToArray();
         connection.SendFragmented(Packets.Server_WorldData, packetData);
 
