@@ -181,10 +181,14 @@ namespace Multiplayer.Client.Persistent
     // Additionally, due to the pawns being assigned to spectating first in PostOpen through RitualRoleAssignments.TryAssignSpectate,
     // a method which we sync, it called that method after the pawns had their forced assignments. This could cause situations like
     // no pawn being selected for the leader/throne speech ritual (being forced as a spectator instead). This fixes that issue as well.
+    // The proxy is opened for the player who started the ritual while the command creating the session still runs: its
+    // PostOpen filled the session's pawns a second time on that client only (Alpha Memes' funerals then reassigned their
+    // crafter, a desync when the ritual began). Only the temporary dialog of the command fills them, on every client.
     [HarmonyPatch(typeof(Dialog_BeginRitual), nameof(Dialog_BeginRitual.PostOpen))]
     static class PreventRepeatedRitualPostOpenCalls
     {
-        static bool Prefix() => Multiplayer.Client == null || Multiplayer.ExecutingCmds;
+        static bool Prefix(Dialog_BeginRitual __instance) =>
+            Multiplayer.Client == null || Multiplayer.ExecutingCmds && __instance is not RitualBeginProxy;
     }
 
 
