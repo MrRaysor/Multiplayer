@@ -56,7 +56,8 @@ public static class SyncConfigs
         "telefonmast.graphicssettings",
         "derekbickley.ltocolonygroupsfinal",
         "dra.multiplayercustomtickrates", // syncs its own settings
-        "merthsoft.designatorshapes" // settings for UI and stuff meaningless for MP
+        "merthsoft.designatorshapes", // settings for UI and stuff meaningless for MP
+        "mlie.usethisinstead" // only suggests replacement mods; its LastVersion hash differs between installs
         //"zetrith.prepatcher",
     ];
 
