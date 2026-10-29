@@ -170,7 +170,13 @@ namespace Multiplayer.Client
                 return cmdLog;
             }
 
-            // RimWorld 1.7 writes its log to a Logs folder in the save data folder.
+            // RimWorld 1.7 writes its log to a Logs folder in the save data folder, unless started with -NoFileLog: the file
+            // there is then another session's.
+            if (Environment.GetCommandLineArgs().Any(arg => arg.Equals("-NoFileLog", StringComparison.OrdinalIgnoreCase)))
+            {
+                return null;
+            }
+
             var logsFolderLog = Path.Combine(Application.persistentDataPath, "Logs", "Player.log");
             if (File.Exists(logsFolderLog))
             {
