@@ -36,7 +36,7 @@ namespace Multiplayer.Client
                     })
                     .ToList();
 
-                var localConfig = configs.FirstOrDefault(localConfig => localConfig.ModId == meta.PackageIdNonUnique);
+                var localConfigs = configs.Where(localConfig => localConfig.ModId == meta.PackageIdNonUnique).ToList();
                 var source = meta.Source switch
                 {
                     ContentSource.Undefined => ClientInitDataPacket.ModSource.Undefined,
@@ -53,13 +53,11 @@ namespace Multiplayer.Client
                     publishedFileId = (ulong)meta.GetPublishedFileId(),
                     source = source,
                     files = files,
-                    config = localConfig == null
-                        ? null
-                        : new ClientInitDataPacket.ModConfig
-                        {
-                            fileName = localConfig.FileName,
-                            contents = localConfig.Contents,
-                        }
+                    configs = localConfigs.Select(localConfig => new ClientInitDataPacket.ModConfig
+                    {
+                        fileName = localConfig.FileName,
+                        contents = localConfig.Contents,
+                    }).ToList()
                 };
             }).ToList();
         }
@@ -202,12 +200,9 @@ namespace Multiplayer.Client
                     remoteInfo.remoteFiles.Add(modInfo.packageId, new ModFile(absPath, modFile.path, modFile.hash));
                 }
 
-                if (mod.config.HasValue)
-                {
-                    var modConfig = mod.config.Value;
+                foreach (var modConfig in mod.configs ?? [])
                     remoteInfo.remoteModConfigs.Add(
                         new ModConfig(modInfo.packageId, modConfig.fileName, modConfig.contents));
-                }
             }
 
             return remoteInfo;
