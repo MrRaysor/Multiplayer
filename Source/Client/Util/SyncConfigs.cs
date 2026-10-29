@@ -57,7 +57,8 @@ public static class SyncConfigs
         "derekbickley.ltocolonygroupsfinal",
         "dra.multiplayercustomtickrates", // syncs its own settings
         "merthsoft.designatorshapes", // settings for UI and stuff meaningless for MP
-        "mlie.usethisinstead" // only suggests replacement mods; its LastVersion hash differs between installs
+        "mlie.usethisinstead", // only suggests replacement mods; its LastVersion hash differs between installs
+        "m00nl1ght.mappreview" // world map preview UI; saves its in-game toolbar position, which depends on the screen
         //"zetrith.prepatcher",
     ];
 
