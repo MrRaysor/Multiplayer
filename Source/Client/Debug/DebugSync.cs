@@ -309,7 +309,10 @@ namespace Multiplayer.Client
         static bool Prefix(Window window)
         {
             if (Multiplayer.Client == null) return true;
-            if (!Multiplayer.ExecutingCmds) return true;
+            // Only the windows of a debug tool. A menu that another command opens (a mod button synced as an action)
+            // was kept under the local player's id, then picked from the issuer's id on the other players: they ran
+            // nothing, or the options of an older menu (a Rules of Engagement formation set on another pawn).
+            if (!Multiplayer.ExecutingCmdDebugTool) return true;
             if (!Multiplayer.GameComp.debugMode) return true;
             if (!DebugSync.ShouldHandle()) return true;
 
