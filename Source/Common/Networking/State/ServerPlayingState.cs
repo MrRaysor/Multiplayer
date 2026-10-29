@@ -218,15 +218,16 @@ namespace Multiplayer.Common
         [TypedPacketHandler]
         public void HandleAutosaving(ClientAutosavingPacket packet)
         {
-            var forceJoinPoint = packet.reason == JoinPointRequestReason.Save;
+            var forceJoinPoint = packet.reason is JoinPointRequestReason.Save or JoinPointRequestReason.SaveGame;
 
             ServerLog.Detail(
                 $"Received Client_Autosaving from {Player.Username}, standalone={Server.IsStandaloneServer}, " +
                 $"isHost={Player.IsHost}, reason={packet.reason}, force={forceJoinPoint}");
 
             // On standalone, any playing client can trigger a join point (always, regardless of settings)
-            // On hosted, only the host can trigger and only if the Autosave flag is set
-            if (Server.IsStandaloneServer ||
+            // On hosted, only the host can trigger and only if the Autosave flag is set, except for a player saving the
+            // game: the save is written from the join point (mods also change the game while it is saved)
+            if (Server.IsStandaloneServer || packet.reason == JoinPointRequestReason.SaveGame ||
                 (Player.IsHost && Server.settings.autoJoinPoint.HasFlag(AutoJoinPointFlags.Autosave)))
                 Server.worldData.TryStartJoinPointCreation(forceJoinPoint, sourcePlayer: Player);
         }

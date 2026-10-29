@@ -198,7 +198,12 @@ public class SaveGameWindow : Window
 
     private void Accept(bool currentReplay)
     {
-        if (curText.Length != 0)
+        if (curText.Length != 0 && !currentReplay)
+        {
+            Autosaving.SaveAtNextJoinPoint(curText);
+            Close();
+        }
+        else if (curText.Length != 0)
         {
             LongEventHandler.QueueLongEvent(() =>
             {

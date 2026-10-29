@@ -280,6 +280,7 @@ public class AsyncWorldTimeComp : IExposable, ITickable
             Multiplayer.GameComp.multifaction,
             ReloadOptimizationMode.ForJoinPointSnapshot
         );
+        Autosaving.OnJoinPointCreated();
 
         if (!TickPatch.Simulating && !Multiplayer.IsReplay)
         {

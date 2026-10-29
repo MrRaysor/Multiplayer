@@ -11,8 +11,16 @@ namespace Multiplayer.Client;
 
 public static class Autosaving
 {
+    private static string pendingSaveName;
+
     public static void DoAutosave()
     {
+        if (Multiplayer.session?.ConnectedToStandaloneServer != true)
+        {
+            SaveAtNextJoinPoint(GetNextAutosaveFileName());
+            return;
+        }
+
         LongEventHandler.QueueLongEvent(() =>
         {
             var snapshot = SaveLoad.CreateGameDataSnapshot(SaveLoad.SaveGameData(), false);
@@ -29,6 +37,28 @@ public static class Autosaving
                 SaveLoad.SendStandaloneWorldSnapshot(snapshot);
             }
         }, "MpSaving", false, null);
+    }
+
+    // Saving the game also runs mods' code that changes it (Performance Optimizer empties its caches, Mechanoid Mechanitor
+    // prunes its records...). A player saving alone changed their own game only, and desynced a few seconds later
+    // (Raysor's game, 2026-10-29). The save is written from the next join point instead: every player makes it, by
+    // saving and reloading their game at the same tick.
+    public static void SaveAtNextJoinPoint(string fileNameNoExtension)
+    {
+        pendingSaveName = fileNameNoExtension;
+        if (!TickPatch.Simulating)
+            Multiplayer.Client.Send(new ClientAutosavingPacket(JoinPointRequestReason.SaveGame));
+    }
+
+    // Every player calls this once their join point snapshot is made; the player who asked for a save writes it.
+    public static void OnJoinPointCreated()
+    {
+        if (pendingSaveName == null || Multiplayer.session?.dataSnapshot == null)
+            return;
+
+        var fileName = pendingSaveName;
+        pendingSaveName = null;
+        SaveGameToFile_Overwrite(fileName, Multiplayer.session.dataSnapshot);
     }
 
     public static void SendAutosavingRequest(JoinPointRequestReason reason)
