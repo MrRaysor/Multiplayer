@@ -77,7 +77,8 @@ public static class SyncConfigs
 
             foreach (var modInstance in LoadedModManager.runningModClasses.Values)
             {
-                if (modInstance.modSettings == null) continue;
+                // Not modSettings: a mod may load its settings on first use only (While You're Nearby), then the host
+                // that played counted its file and a player joining from the main menu did not. The file says it all.
                 if (!mod.assemblies.loadedAssemblies.Contains(modInstance.GetType().Assembly)) continue;
 
                 var instanceName = modInstance.GetType().Name;
