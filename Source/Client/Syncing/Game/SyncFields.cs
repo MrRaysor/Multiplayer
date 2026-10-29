@@ -655,7 +655,13 @@ namespace Multiplayer.Client
         [MpPrefix(typeof(Dialog_RechargeSettings), nameof(Dialog_RechargeSettings.DoWindowContents))]
         static void WatchRechargeSettings(Dialog_RechargeSettings __instance)
         {
-            SyncMechRechargeThresholds.Watch(__instance.controlGroup);
+            // A group is sent by its index in its mechanitor's list. Mechanoid Mechanitor opens this dialog on a stand-in
+            // group of a mechanitor mech, listed nowhere, and applies the value itself: watching it sent a command that
+            // failed on every player (index -1) and put the slider back.
+            var group = __instance.controlGroup;
+            if (group?.tracker?.controlGroups?.Contains(group) != true)
+                return;
+            SyncMechRechargeThresholds.Watch(group);
         }
 
         [MpPrefix(typeof(PawnColumnWorker_AutoRepair), nameof(PawnColumnWorker_AutoRepair.DoCell))]
