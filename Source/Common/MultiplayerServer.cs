@@ -101,6 +101,8 @@ namespace Multiplayer.Common
             double realTime = 0;
 
             List<ServerPlayer> playersBehind = [];
+            Stopwatch behindLogTime = Stopwatch.StartNew();
+            string lastBehindText = null;
             while (running)
             {
                 try
@@ -131,7 +133,14 @@ namespace Multiplayer.Common
                         else if (playersBehind.Any())
                         {
                             var text = playersBehind.Join(p => $"{p.Username}");
-                            ServerLog.Log($"Simulation paused because some players are too far behind: {text}");
+                            // Logged on every server tick while a slow player catches up, this filled the host's log:
+                            // RimWorld stops logging after its message limit. Log changes, and a reminder twice a minute.
+                            if (text != lastBehindText || behindLogTime.ElapsedMilliseconds > 30000)
+                            {
+                                lastBehindText = text;
+                                behindLogTime.Restart();
+                                ServerLog.Log($"Simulation paused because some players are too far behind: {text}");
+                            }
                         }
 
                         // Run up to three times slower depending on max ticksBehind
