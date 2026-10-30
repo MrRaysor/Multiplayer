@@ -58,7 +58,27 @@ public static class Autosaving
 
         var fileName = pendingSaveName;
         pendingSaveName = null;
-        SaveGameToFile_Overwrite(fileName, Multiplayer.session.dataSnapshot);
+        SaveGameToFile_Overwrite(fileName, WithCurrentMap(Multiplayer.session.dataSnapshot));
+    }
+
+    // A multifaction join point leaves the current map out (a joining player picks a faction from the world). A save
+    // written from it keeps the saving player's map, as a save written directly does: hosting Raysor's autosave of
+    // 2026-10-30 opened on the world with no map shown. Only the file changes; the join point sent to players does not.
+    private static GameDataSnapshot WithCurrentMap(GameDataSnapshot snapshot)
+    {
+        var index = Current.Game?.currentMapIndex ?? -1;
+        if (index < 0)
+            return snapshot;
+
+        var doc = ScribeUtil.LoadDocument(snapshot.GameData);
+        var gameNode = doc.DocumentElement?["game"];
+        if (gameNode == null || gameNode["currentMapIndex"] != null)
+            return snapshot;
+
+        var node = doc.CreateElement("currentMapIndex");
+        node.InnerText = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        gameNode.PrependChild(node);
+        return snapshot with { GameData = ScribeUtil.XmlToByteArray(doc) };
     }
 
     public static void SendAutosavingRequest(JoinPointRequestReason reason)
