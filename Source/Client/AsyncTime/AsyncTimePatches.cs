@@ -134,7 +134,8 @@ namespace Multiplayer.Client.AsyncTime
             if (WorldRendererUtility.WorldSelected) return;
 
             var map = PreDrawCalcMarker.calculating.Map ?? Find.CurrentMap;
-            var asyncTime = map.AsyncTime();
+            var asyncTime = map?.AsyncTime();
+            if (asyncTime == null) return;
             var timeSpeed = Multiplayer.IsReplay ? TickPatch.replayTimeSpeed : asyncTime.DesiredTimeSpeed;
 
             __result = TickPatch.Simulating ? 6 : asyncTime.ActualRateMultiplier(timeSpeed);
@@ -147,10 +148,30 @@ namespace Multiplayer.Client.AsyncTime
         static void Postfix(ref bool __result)
         {
             if (Multiplayer.Client == null) return;
+
+            // The simulation must not see the local view (the viewed map, the world view, vanilla's ForcePaused with
+            // e.g. TilePicker.Active): Pawn_JobTracker.StartJob counts a job given while paused only if it's the
+            // tracker's second in the same step, so the value changed jobsGivenThisTick per client.
+            // A world or map tick: not paused, as vanilla only ticks unpaused (from rwmt/Multiplayer#996).
+            if (AsyncWorldTimeComp.tickingWorld || AsyncTimeComp.tickingMap != null)
+            {
+                __result = false;
+                return;
+            }
+
+            // Commands, the constant ticker and sim long events: whether their context's tickable is paused
+            if (Multiplayer.ExecutingCmds || ConstantTicker.ticking || Patches.SimLongEventContext.InSimulation)
+            {
+                var tickable = (ITickable)Multiplayer.MapContext?.AsyncTime() ?? Multiplayer.AsyncWorldTime;
+                __result = tickable.ActualRateMultiplier(tickable.DesiredTimeSpeed) == 0;
+                return;
+            }
+
             if (WorldRendererUtility.WorldSelected) return;
             if (FactionCreator.generatingMap) return;
 
-            var asyncTime = Find.CurrentMap.AsyncTime();
+            var asyncTime = Find.CurrentMap?.AsyncTime();
+            if (asyncTime == null) return;
             var timeSpeed = Multiplayer.IsReplay ? TickPatch.replayTimeSpeed : asyncTime.DesiredTimeSpeed;
 
             __result = asyncTime.ActualRateMultiplier(timeSpeed) == 0;

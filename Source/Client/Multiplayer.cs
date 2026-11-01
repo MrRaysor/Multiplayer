@@ -70,6 +70,7 @@ namespace Multiplayer.Client
             && !ExecutingCmds
             && !reloading
             && Current.ProgramState == ProgramState.Playing
+            && !Patches.SimLongEventContext.InSimulation
             && LongEventHandler.currentEvent == null;
 
         public static string ReplaysDir => GenFilePaths.FolderUnderSaveData("MpReplays");
