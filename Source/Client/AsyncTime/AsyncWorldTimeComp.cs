@@ -96,7 +96,9 @@ public class AsyncWorldTimeComp : IExposable, ITickable
 
         Multiplayer.game.worldComp.ExposeData();
 
-        if (Scribe.mode == LoadSaveMode.LoadingVars)
+        // Saved like each map's mapTicks; saves made before have no value and take it from the tick manager.
+        Scribe_Values.Look(ref worldTicks, "worldTicks", -1);
+        if (Scribe.mode == LoadSaveMode.LoadingVars && worldTicks < 0)
             worldTicks = Find.TickManager.TicksGame;
     }
 
@@ -143,6 +145,12 @@ public class AsyncWorldTimeComp : IExposable, ITickable
 
     public void PreContext()
     {
+        // The world's code reads Find.TickManager.TicksGame. Left as it was, it held what the tick manager had when the
+        // last join point was saved (from a long event, after the multifaction save switched factions): about the time of
+        // the first map, and not always the same tick on every player (prepared scene, 2026-11-01: world pawns ticked at
+        // 2343137 on the host and 2343136 on the client, desync; the world pawn GC and the settlement maps made with world
+        // pawns followed). The world's own time instead, which TimestampFixer also uses for pawns entering or leaving it.
+        Find.TickManager.ticksGameInt = worldTicks;
         Find.TickManager.CurTimeSpeed = DesiredTimeSpeed;
         Rand.PushState();
         Rand.StateCompressed = randState;
