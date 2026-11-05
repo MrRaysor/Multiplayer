@@ -41,6 +41,13 @@ namespace Multiplayer.Client
             var mapCmds = new Dictionary<int, Queue<ScheduledCommand>>();
             var planetRenderMode = Find.World.renderer.wantedMode;
             var chatWindow = ChatWindow.Opened;
+            // The reload below runs Root.Start, which makes a new UIRoot_Play and so a new DesignatorManager: the draw
+            // style the game remembers for each designator category ("Remember draw styles", where Designator Shapes adds
+            // its shapes) was lost at every join point, so every player went back to each category's first style at each
+            // autosave and connection (2026-11-05). Interface state only, the same kind as the selection kept here.
+            var drawStyles = Find.DesignatorManager?.previouslySelected is { } styles
+                ? new Dictionary<DrawStyleCategoryDef, DrawStyleDef>(styles)
+                : null;
 
             var selectedData = new ByteWriter();
             SyncSerialization.WriteSync(selectedData, Find.Selector.selected.OfType<ISelectable>().ToList());
@@ -103,6 +110,10 @@ namespace Multiplayer.Client
 
             if (chatWindow != null)
                 Find.WindowStack.Add_KeepRect(chatWindow);
+
+            if (drawStyles != null && Find.DesignatorManager?.previouslySelected is { } newStyles)
+                foreach (var kv in drawStyles)
+                    newStyles[kv.Key] = kv.Value;
 
             var selectedReader = new ByteReader(selectedData.ToArray()) { context = new MpContext() { map = Find.CurrentMap } };
             Find.Selector.selected = SyncSerialization.ReadSync<List<ISelectable>>(selectedReader).AllNotNull().Cast<object>().ToList();
