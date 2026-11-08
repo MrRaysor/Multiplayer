@@ -49,6 +49,12 @@ public class Page_ChooseIdeo_Multifaction : Page
         DoBottomButtons(inRect);
     }
 
+    public override void PostClose()
+    {
+        base.PostClose();
+        FactionSidebar.ConfigurationPageClosed(this);
+    }
+
     public override bool CanDoNext()
     {
         if (pageChooseIdeo.selectedIdeo == null)

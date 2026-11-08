@@ -399,6 +399,8 @@ namespace Multiplayer.Client
             finally
             {
                 Current.programStateInt = prevState;
+                // The synced creation takes the scenario from factionCreationDto.scenarioDef, not from the game.
+                RestoreGameScenario();
             }
         }
 
@@ -442,8 +444,20 @@ namespace Multiplayer.Client
 
             Find.WindowStack.Add(PageUtility.StitchedPages(gameConfigurationPages));
         }
+        // The game's own scenario while the configuration pages show the one chosen for the new faction (they read
+        // Find.Scenario). The game is saved with Current.Game.Scenario: left at the chosen scenario, the creator's join
+        // points saved another scenario than the other players' (Crashlanded by default), so after a reload a mod that
+        // reads the scenario ([MAP] Mechanoid Mechanitor) changed the game on the creator alone (desync, 2026-11-05).
+        private static Scenario gameScenario;
+        private static Game gameOfScenario;
+
         private static void InitializeDataForGameConfigurationPages()
         {
+            if (gameScenario == null || gameOfScenario != Current.Game)
+            {
+                gameScenario = Current.Game.Scenario;
+                gameOfScenario = Current.Game;
+            }
             Current.Game.Scenario = chosenScenario.scenario;
 
             Current.Game.InitData = new GameInitData
@@ -451,6 +465,24 @@ namespace Multiplayer.Client
                 startedFromEntry = true,
                 gameToLoad = FactionCreator.preventSpecialCalculationPathInGenTicksTicksAbs
             };
+        }
+
+        // Puts the game's scenario back once the faction is sent or the configuration pages are left.
+        internal static void RestoreGameScenario()
+        {
+            if (gameScenario != null && gameOfScenario == Current.Game && Current.Game != null)
+                Current.Game.Scenario = gameScenario;
+            gameScenario = null;
+            gameOfScenario = null;
+        }
+
+        // A configuration page closed: the scenario goes back unless another of these pages is still open (the next
+        // page opens before the previous one closes).
+        internal static void ConfigurationPageClosed(Window closing)
+        {
+            if (Find.WindowStack.Windows.Any(w => w != closing && (w is Page_ConfigureStartingPawns_Multifaction || w is Page_ChooseIdeo_Multifaction)))
+                return;
+            RestoreGameScenario();
         }
 
         private static List<ThingDefCount> GetStartingPossessions(List<Pawn> startingPawns)
